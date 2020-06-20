@@ -9,7 +9,7 @@ G_WIDTH = 300
 G_HEIGHT = 600
 P_SIZE = 30
 
-top_left_x = 4
+top_left_x = 0
 top_left_y = 2
 
 # Each variable represents a tetris piece with the 1 represent 'blocks to be drawn'
@@ -158,13 +158,14 @@ class Gameboard():
         p = self.piece.rotation
         for y, row in enumerate(self.piece.shape[p]):
             border_y = y + dy
-            print(border_y)
             for x, block_val in enumerate(row):
                 if block_val == '1':
                     border_x = x + dx
-                    if border_x < top_left_x:
+                    if border_x < 0:
+                    # top_left_x:
                         return False
-                    elif border_x > self.width + (top_left_x - 1):
+                    elif border_x > self.width-1: 
+                    # (+ top_left_x - 1):
                         return False
                     elif border_y > self.height -1 :
                         return False
@@ -193,40 +194,24 @@ class Gameboard():
                 if col == '1':
                     self.grid[y+self.piece_y][x+self.piece_x] = 1
         
-        print(self.grid)
-        self.create_piece()
-
     #draw grid; parameter piece is the tetris piece, pos_x is starting x and pox_y is starting y
     def draw_grid(self):
-        # for y, row in enumerate(self.grid):
-        #     for x, col in enumerate(row):
-        #         if col == '1':
-        #             pygame.draw_rect(self.gamescreen,
-        #                             (128,128,128),
-        #                             (top_left_x * P_SIZE + (col* P_SIZE), top_left_y * P_SIZE + (row * P_SIZE), P_SIZE, P_SIZE),
-        #                             1)
-        #         else:
-        #             pygame.draw.rect(self.gamescreen, 
-        #                             (255,0,0), 
-        #                             (top_left_x * P_SIZE, top_left_y * P_SIZE, G_WIDTH, G_HEIGHT),
-        #                             1)
-        #         pygame.draw.rect(self.gamescreen, 
-        #                 (255,0,0), 
-        #                 (top_left_x * P_SIZE, top_left_y * P_SIZE, G_WIDTH, G_HEIGHT),
-        #                 1)
-        for row in range(len(self.grid)-2):
-            for col in range(len(self.grid[row])):
+        stuff = 0
+        for y, row in enumerate(self.grid):
+            for x, col in enumerate(row):
+                if col == 1:
+                    pygame.draw.rect(self.gamescreen,
+                                    self.color,
+                                    ((x * P_SIZE), (y * P_SIZE), P_SIZE, P_SIZE))
+                else:
+                    pygame.draw.rect(self.gamescreen, 
+                                    (255,0,0), 
+                                    (top_left_x * P_SIZE, top_left_y * P_SIZE, G_WIDTH, G_HEIGHT),
+                                    1)
                 pygame.draw.rect(self.gamescreen, 
-                                (255,255,255), 
-                                (top_left_x * P_SIZE + (col* P_SIZE), top_left_y * P_SIZE + (row * P_SIZE), P_SIZE, P_SIZE),
-                                1)
-
-        pygame.draw.rect(self.gamescreen, 
                         (255,0,0), 
                         (top_left_x * P_SIZE, top_left_y * P_SIZE, G_WIDTH, G_HEIGHT),
                         1)
-
-    # def get_pos(self):
 
     def draw_piece(self, piece, pos_x, pos_y):
         p = piece.rotation
@@ -274,7 +259,8 @@ class Tetris():
                     if event.key ==pygame.K_RIGHT:
                         self.gameboard.move_piece(dx=1, dy=0)
                     if event.key ==pygame.K_SPACE:
-                        self.gameboard.lock_piece()                      
+                        self.gameboard.lock_piece()  
+                        self.gameboard.create_piece()                    
 
             self.gameboard.draw_board()
             pygame.display.update()
