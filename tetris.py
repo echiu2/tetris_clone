@@ -26,13 +26,13 @@ S = [['.....',
 
 Z = [['.....',
       '.....',
-      '.00..',
-      '..00.',
+      '.11..',
+      '..11.',
       '.....'],
      ['.....',
-      '..0..',
-      '.00..',
-      '.0...',
+      '..1..',
+      '.11..',
+      '.1...',
       '.....']]
 
 I = [['.....',
@@ -149,8 +149,10 @@ class Gameboard():
         [self.grid.append([0] * self.width) for _ in range(self.height)]
         self.create_piece()
 
+    # Create a new piece: will be called everytime a piece gets locked
     def create_piece(self):
         self.piece = Piece()
+        print(self.piece.shape)
         self.piece_x, self.piece_y = 6, 1
 
     # Checking if block piece will not exit out the gamescreen or game zone
@@ -169,10 +171,11 @@ class Gameboard():
                         return False
                     elif border_y > self.height -1 :
                         return False
-                    elif self.grid[y][x]:
+                    elif self.grid[border_y][border_x]:
                         return False                    
         return True
 
+    # Check if the piece can move anymore in the x or y direction
     def valid_move(self, dx, dy):
         new_dx = self.piece_x + dx
         new_dy = self.piece_y + dy
@@ -180,23 +183,35 @@ class Gameboard():
             return True
         return False
 
+    # Move the tetris piece
     def move_piece(self, dx, dy):
         if self.valid_move(dx, dy):
             self.piece_x += dx
             self.piece_y += dy
     
+    # Make tetris piece fall a row after every interval; will have to check if move is valid or not: if not then lock the piece
     def falling_piece(self):
         if self.valid_move(dx=0, dy=1):
             self.move_piece(dx=0, dy=1)
         else:
             self.lock_piece()
+            self.delete_lines()
 
+    # delete lines by creating a list comprehension through the grid, if a row is all 1s then we will go through that row
+    # and reverse it to get the row before it to make it drop
+    def delete_lines(self):
+        remove_row = [y for y, row in enumerate(self.grid) if all(row)]
+        for y in remove_row:
+            for _y in reversed(range(1, y+1)):
+                self.grid[_y] = self.grid[_y-1]
+        
     def rotate_piece(self):
         self.piece.rotate("clockwise")
         check = self.check_collision(self.piece_x, self.piece_y)
         if check:
             pass 
 
+    # Piece can no longer be move and therefore is now embedded into the grid
     def lock_piece(self):
         p = self.piece.rotation
         # if not self.check_collision(self.piece_x, self.piece_y):
@@ -243,8 +258,7 @@ class Gameboard():
         self.draw_grid()
     
     def gameover(self):
-        if sum(self.grid[0]) > 0 or sum(self.grid[1]) > 0:
-            print("hi")
+        return sum(self.grid[0]) > 0 or sum(self.grid[1]) > 0
    
 class Tetris():
     DROP_EVENT = pygame.USEREVENT
@@ -259,9 +273,10 @@ class Tetris():
         pygame.time.set_timer(Tetris.DROP_EVENT, 500)
 
         while running:
-            if self.gameboard.gameover():
-                pygame.display.quit()
-                quit()
+            # if self.gameboard.gameover():
+            #     print("gameover")
+            #     pygame.display.quit()
+            #     quit()
 
             self.window.fill((0,0,0))
             font = pygame.font.SysFont('comicsans', 60)
