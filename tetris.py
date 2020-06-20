@@ -4,7 +4,7 @@ from random import randint
 pygame.init()
 
 S_WIDTH = 540
-S_HEIGHT = 720
+S_HEIGHT = 660
 #gameboard is 20x10 (col by rows)
 G_WIDTH = 300
 G_HEIGHT = 600
@@ -17,12 +17,11 @@ top_left_y = 2
 S = [['.....',
       '..11.',
       '.11..',
-      '.....',
       '.....',],
-     ['..1..',
+     ['.....',
+      '..1..',
       '..11.',
       '...1.',
-      '.....'
       '.....']]
 
 Z = [['.....',
@@ -148,13 +147,33 @@ class Gameboard():
         self.height = 22
         self.grid = []
         [self.grid.append([0] * self.width) for _ in range(self.height)]
-        self.create_piece()
+        self.next_piece()
+        self.create_piece(self.next_p)
+        self.hold()
+
+
+    def next_piece(self):
+        self.next_p = Piece()
+        self.next_next = Piece()
+        # self.piece_x, self.piece_y = 2,1 
 
     # Create a new piece: will be called everytime a piece gets locked
-    def create_piece(self):
-        self.piece = Piece()
-        print(self.piece.shape)
+    def create_piece(self, piece):
+        self.piece = piece
+        # self.piece = Piece()
         self.piece_x, self.piece_y = 2, 1
+
+    # Piece can no longer be move and therefore is now embedded into the grid
+    def lock_piece(self):
+        p = self.piece.rotation
+        # if not self.check_collision(self.piece_x, self.piece_y):
+        for y, row in enumerate(self.piece.shape[p]):
+            for x, col in enumerate(row):
+                if col == '1':
+                    self.grid[y+self.piece_y][x+self.piece_x] = 1
+
+        self.create_piece(self.next_next)
+        self.next_piece()
 
     # Checking if block piece will not exit out the gamescreen or game zone (2, 3 represents left and right wall)
     def check_collision(self, dx, dy):
@@ -209,6 +228,7 @@ class Gameboard():
             for _y in reversed(range(1, y+1)):
                 self.grid[_y] = self.grid[_y-1]
         
+    # Check if you can rotate piece through the the collisoin cases, if you can't then rotate counterclockwise
     def rotate_piece(self):
         self.piece.rotate("clockwise")
         check = self.check_collision(self.piece_x, self.piece_y)
@@ -230,19 +250,18 @@ class Gameboard():
                 else:
                     self.piece.rotate("counterclockwise")
             else:
-                self.piece.rotate("counterclockwise")                
+                self.piece.rotate("counterclockwise")   
 
+    # Used to check if player is holding a piece or not, if true then we will hold the piece and change the next and current piece
+    def hold(self, check_hold=False):
+        self.hold_piece = self.piece
+        self.is_hold = check_hold
 
-    # Piece can no longer be move and therefore is now embedded into the grid
-    def lock_piece(self):
-        p = self.piece.rotation
-        # if not self.check_collision(self.piece_x, self.piece_y):
-        for y, row in enumerate(self.piece.shape[p]):
-            for x, col in enumerate(row):
-                if col == '1':
-                    self.grid[y+self.piece_y][x+self.piece_x] = 1
+        self.create_piece(self.next_next)
+        self.next_piece()    
 
-        self.create_piece()
+        return self.is_hold
+            
         
     #draw grid; parameter piece is the tetris piece, pos_x is starting x and pox_y is starting y
     def draw_grid(self):
@@ -265,6 +284,15 @@ class Gameboard():
                         (top_left_x * P_SIZE, top_left_y * P_SIZE, G_WIDTH, G_HEIGHT),
                         1)
 
+    def draw_next(self, piece):
+        p = piece.rotation
+        for row in range(len(piece.shape[p])):
+            for col in range(len(piece.shape[p][row])):
+                if piece.shape[p][row][col] == '1':
+                    pygame.draw.rect(self.gamescreen, 
+                                    piece.color, 
+                                    (((self.width + 340)) + col * P_SIZE, (row * P_SIZE) + 80, P_SIZE, P_SIZE))        
+
 
     def draw_piece(self, piece, pos_x, pos_y):
         p = piece.rotation
@@ -275,12 +303,28 @@ class Gameboard():
                                     piece.color, 
                                     (pos_x * P_SIZE + (col* P_SIZE), pos_y * P_SIZE + (row * P_SIZE), P_SIZE, P_SIZE))
 
+    def draw_hold_piece(self, piece):
+        p = piece.rotation
+        for row in range(len(piece.shape[p])):
+            for col in range(len(piece.shape[p][row])):
+                if piece.shape[p][row][col] == '1':
+                    pygame.draw.rect(self.gamescreen, 
+                                    piece.color, 
+                                    (((self.width + 340)) + col * P_SIZE, (row * P_SIZE) + 280, P_SIZE, P_SIZE))         
+
+
     def draw_board(self):
+        self.draw_next(self.next_next)
         self.draw_piece(self.piece, self.piece_x, self.piece_y)
         self.draw_grid()
+
+    # if player is holding, then draw holding piece
+    def draw_hold(self):
+        if self.is_hold:
+            self.draw_hold_piece(self.hold_piece)
     
     def gameover(self):
-        return sum(self.grid[1]) > 0 or sum(self.grid[2]) > 0
+        return sum(self.grid[0]) > 0 or sum(self.grid[1]) > 0 or sum(self.grid[2]) > 0
    
 class Tetris():
     DROP_EVENT = pygame.USEREVENT
@@ -292,7 +336,8 @@ class Tetris():
     def start(self):
         pygame.display.set_caption('Tetris Clone')
         running = True
-        pygame.time.set_timer(Tetris.DROP_EVENT, 500)
+        time = 750
+        pygame.time.set_timer(Tetris.DROP_EVENT, time)
 
         while running:
             if self.gameboard.gameover():
@@ -304,6 +349,14 @@ class Tetris():
             font = pygame.font.SysFont('comicsans', 60)
             label = font.render('TETRIS', 1, (255,255,255))
             self.window.blit(label, (top_left_x * P_SIZE + G_WIDTH / 2 - (label.get_width() / 2), 10))
+
+            font = pygame.font.SysFont('comicsans', 40)
+            label = font.render('NEXT PIECE', 1, (255,255,255))
+            self.window.blit(label, ((top_left_x + 9) * P_SIZE + G_WIDTH / 2 - (label.get_width() / 2), 80))
+
+            font = pygame.font.SysFont('comicsans', 40)
+            label = font.render('HOLD', 1, (255,255,255))
+            self.window.blit(label, ((top_left_x + 9) * P_SIZE + G_WIDTH / 2 - (label.get_width() / 2), 280))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:         
@@ -321,10 +374,13 @@ class Tetris():
                         self.gameboard.move_piece(dx=1, dy=0)
                     if event.key ==pygame.K_SPACE:
                         self.gameboard.hard_drop()
+                    if event.key ==pygame.K_h:
+                        self.gameboard.hold(check_hold=True)
                 if event.type == Tetris.DROP_EVENT:
                     self.gameboard.falling_piece()                   
 
             self.gameboard.draw_board()
+            self.gameboard.draw_hold()
             pygame.display.update()
 
     
