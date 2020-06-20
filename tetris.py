@@ -173,12 +173,23 @@ class Gameboard():
                         return False                    
         return True
 
-    def move_piece(self, dx, dy):
+    def valid_move(self, dx, dy):
         new_dx = self.piece_x + dx
         new_dy = self.piece_y + dy
         if self.check_collision(new_dx, new_dy):
-            self.piece_x = new_dx
-            self.piece_y = new_dy
+            return True
+        return False
+
+    def move_piece(self, dx, dy):
+        if self.valid_move(dx, dy):
+            self.piece_x += dx
+            self.piece_y += dy
+    
+    def falling_piece(self):
+        if self.valid_move(dx=0, dy=1):
+            self.move_piece(dx=0, dy=1)
+        else:
+            self.lock_piece()
 
     def rotate_piece(self):
         self.piece.rotate("clockwise")
@@ -193,25 +204,30 @@ class Gameboard():
             for x, col in enumerate(row):
                 if col == '1':
                     self.grid[y+self.piece_y][x+self.piece_x] = 1
+
+        self.create_piece()
         
     #draw grid; parameter piece is the tetris piece, pos_x is starting x and pox_y is starting y
     def draw_grid(self):
-        stuff = 0
         for y, row in enumerate(self.grid):
             for x, col in enumerate(row):
                 if col == 1:
                     pygame.draw.rect(self.gamescreen,
-                                    self.color,
+                                    self.piece.color,
                                     ((x * P_SIZE), (y * P_SIZE), P_SIZE, P_SIZE))
-                else:
-                    pygame.draw.rect(self.gamescreen, 
-                                    (255,0,0), 
-                                    (top_left_x * P_SIZE, top_left_y * P_SIZE, G_WIDTH, G_HEIGHT),
-                                    1)
+
+        for row in range(len(self.grid)-2):
+            for col in range(len(self.grid[row])):
                 pygame.draw.rect(self.gamescreen, 
+                                (255,255,255), 
+                                (top_left_x  * P_SIZE+ (col* P_SIZE), top_left_y  * P_SIZE+ (row * P_SIZE), P_SIZE, P_SIZE),
+                                1)
+
+        pygame.draw.rect(self.gamescreen, 
                         (255,0,0), 
                         (top_left_x * P_SIZE, top_left_y * P_SIZE, G_WIDTH, G_HEIGHT),
                         1)
+
 
     def draw_piece(self, piece, pos_x, pos_y):
         p = piece.rotation
@@ -222,7 +238,6 @@ class Gameboard():
                                     piece.color, 
                                     (pos_x * P_SIZE + (col* P_SIZE), pos_y * P_SIZE + (row * P_SIZE), P_SIZE, P_SIZE))
 
-
     def draw_board(self):
         self.draw_piece(self.piece, self.piece_x, self.piece_y)
         self.draw_grid()
@@ -232,6 +247,8 @@ class Gameboard():
             print("hi")
    
 class Tetris():
+    DROP_EVENT = pygame.USEREVENT
+
     def __init__(self):
         self.window = pygame.display.set_mode((S_WIDTH, S_HEIGHT))
         self.gameboard = Gameboard(self.window)
@@ -239,11 +256,18 @@ class Tetris():
     def start(self):
         pygame.display.set_caption('Tetris Clone')
         running = True
+        pygame.time.set_timer(Tetris.DROP_EVENT, 500)
+
         while running:
+            if self.gameboard.gameover():
+                pygame.display.quit()
+                quit()
+
             self.window.fill((0,0,0))
             font = pygame.font.SysFont('comicsans', 60)
             label = font.render('TETRIS', 1, (255,255,255))
             self.window.blit(label, (top_left_x * P_SIZE + G_WIDTH / 2 - (label.get_width() / 2), 10))
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:         
                     running = False
@@ -258,9 +282,11 @@ class Tetris():
                         self.gameboard.move_piece(dx=-1, dy=0)
                     if event.key ==pygame.K_RIGHT:
                         self.gameboard.move_piece(dx=1, dy=0)
-                    if event.key ==pygame.K_SPACE:
-                        self.gameboard.lock_piece()  
-                        self.gameboard.create_piece()                    
+                    # if event.key ==pygame.K_SPACE:
+                    #     self.gameboard.lock_piece()  
+                    #     self.gameboard.create_piece()
+                if event.type == Tetris.DROP_EVENT:
+                    self.gameboard.falling_piece()                   
 
             self.gameboard.draw_board()
             pygame.display.update()
