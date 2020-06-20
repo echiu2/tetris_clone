@@ -1,4 +1,5 @@
 import pygame, random 
+from random import randint
 
 pygame.init()
 
@@ -129,7 +130,7 @@ class Piece():
         else:
             self.shape = shape
         self.color = Piece.SHAPES_COLOR[Piece.SHAPES.index(self.shape)]
-        self.rotation = 0
+        self.rotation = randint(0, len(self.shape)-1)
 
     # rotate piece by dividing amount of rotation by 4 because you can only rotate 4 ways then add or subtract by 1 depending on direction
     def rotate(self, direction='clockwise'):
@@ -153,25 +154,23 @@ class Gameboard():
     def create_piece(self):
         self.piece = Piece()
         print(self.piece.shape)
-        self.piece_x, self.piece_y = 6, 1
+        self.piece_x, self.piece_y = 2, 1
 
-    # Checking if block piece will not exit out the gamescreen or game zone
+    # Checking if block piece will not exit out the gamescreen or game zone (2, 3 represents left and right wall)
     def check_collision(self, dx, dy):
         p = self.piece.rotation
         for y, row in enumerate(self.piece.shape[p]):
-            border_y = y + dy
+            self.border_y = y + dy
             for x, block_val in enumerate(row):
                 if block_val == '1':
-                    border_x = x + dx
-                    if border_x < 0:
-                    # top_left_x:
+                    self.border_x = x + dx
+                    if self.border_x < 0:
                         return False
-                    elif border_x > self.width-1: 
-                    # (+ top_left_x - 1):
+                    elif self.border_x > self.width-1: 
                         return False
-                    elif border_y > self.height -1 :
+                    elif self.border_y > self.height -1 :
                         return False
-                    elif self.grid[border_y][border_x]:
+                    elif self.grid[self.border_y][self.border_x]:
                         return False                    
         return True
 
@@ -197,6 +196,11 @@ class Gameboard():
             self.lock_piece()
             self.delete_lines()
 
+    def hard_drop(self):
+        while self.valid_move(dx=0, dy=1):
+            self.move_piece(dx=0, dy=1)
+        self.falling_piece()
+
     # delete lines by creating a list comprehension through the grid, if a row is all 1s then we will go through that row
     # and reverse it to get the row before it to make it drop
     def delete_lines(self):
@@ -210,6 +214,24 @@ class Gameboard():
         check = self.check_collision(self.piece_x, self.piece_y)
         if check:
             pass 
+        if not check:
+            if self.border_x < 0:
+                if self.valid_move(dx=1, dy=0):
+                    self.move_piece(dx=1, dy=0)
+                elif self.valid_move(dx=2, dy=0):
+                    self.move_piece(dx=2, dy=0)
+                else:
+                    self.piece.rotate("counterclockwise")
+            elif self.border_x > self.width-1:
+                if self.valid_move(dx=-1, dy=0):
+                    self.move_piece(dx=-1, dy=0)
+                elif self.valid_move(dx=-2, dy=0):
+                    self.move_piece(dx=-2, dy=0)
+                else:
+                    self.piece.rotate("counterclockwise")
+            else:
+                self.piece.rotate("counterclockwise")                
+
 
     # Piece can no longer be move and therefore is now embedded into the grid
     def lock_piece(self):
@@ -258,7 +280,7 @@ class Gameboard():
         self.draw_grid()
     
     def gameover(self):
-        return sum(self.grid[0]) > 0 or sum(self.grid[1]) > 0
+        return sum(self.grid[1]) > 0 or sum(self.grid[2]) > 0
    
 class Tetris():
     DROP_EVENT = pygame.USEREVENT
@@ -273,10 +295,10 @@ class Tetris():
         pygame.time.set_timer(Tetris.DROP_EVENT, 500)
 
         while running:
-            # if self.gameboard.gameover():
-            #     print("gameover")
-            #     pygame.display.quit()
-            #     quit()
+            if self.gameboard.gameover():
+                print("gameover")
+                pygame.display.quit()
+                quit()
 
             self.window.fill((0,0,0))
             font = pygame.font.SysFont('comicsans', 60)
@@ -297,9 +319,8 @@ class Tetris():
                         self.gameboard.move_piece(dx=-1, dy=0)
                     if event.key ==pygame.K_RIGHT:
                         self.gameboard.move_piece(dx=1, dy=0)
-                    # if event.key ==pygame.K_SPACE:
-                    #     self.gameboard.lock_piece()  
-                    #     self.gameboard.create_piece()
+                    if event.key ==pygame.K_SPACE:
+                        self.gameboard.hard_drop()
                 if event.type == Tetris.DROP_EVENT:
                     self.gameboard.falling_piece()                   
 
