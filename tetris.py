@@ -12,6 +12,7 @@ P_SIZE = 30
 
 top_left_x = 0
 top_left_y = 2
+initial_hold = 0
 
 # Each variable represents a tetris piece with the 1 represent 'blocks to be drawn'
 S = [['.....',
@@ -172,8 +173,25 @@ class Gameboard():
                 if col == '1':
                     self.grid[y+self.piece_y][x+self.piece_x] = 1
 
+        self.can_use_hold = True
         self.create_piece(self.next_next)
         self.next_piece()
+
+    # Used to check if player is holding a piece or not, if true then we will hold the piece and change the next and current piece
+    def hold(self, check_hold=False):
+        self.hold_piece = self.piece
+        self.is_hold = check_hold
+        self.can_use_hold = True
+        if self.is_hold:
+            self.can_use_hold = False    
+  
+        self.create_piece(self.next_next)
+        self.next_piece()   
+
+    def swap_hold(self):
+        self.piece, self.hold_piece = self.hold_piece, self.piece
+        self.can_use_hold = False
+        self.create_piece(self.piece)
 
     # Checking if block piece will not exit out the gamescreen or game zone (2, 3 represents left and right wall)
     def check_collision(self, dx, dy):
@@ -252,15 +270,6 @@ class Gameboard():
             else:
                 self.piece.rotate("counterclockwise")   
 
-    # Used to check if player is holding a piece or not, if true then we will hold the piece and change the next and current piece
-    def hold(self, check_hold=False):
-        self.hold_piece = self.piece
-        self.is_hold = check_hold
-
-        self.create_piece(self.next_next)
-        self.next_piece()    
-
-        return self.is_hold
             
         
     #draw grid; parameter piece is the tetris piece, pos_x is starting x and pox_y is starting y
@@ -350,6 +359,8 @@ class Tetris():
         pygame.quit()
 
     def start(self):
+        global initial_hold
+
         pygame.display.set_caption('Tetris Clone')
         running = True
         time = 750
@@ -391,7 +402,12 @@ class Tetris():
                     if event.key ==pygame.K_SPACE:
                         self.gameboard.hard_drop()
                     if event.key ==pygame.K_h:
-                        self.gameboard.hold(check_hold=True)
+                        if self.gameboard.can_use_hold == True:
+                            if initial_hold == 0:
+                                self.gameboard.hold(check_hold=True)
+                                initial_hold += 1
+                            self.gameboard.swap_hold()
+                            self.gameboard_can_use_hold = False
                 if event.type == Tetris.DROP_EVENT:
                     self.gameboard.falling_piece()                   
 
