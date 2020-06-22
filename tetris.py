@@ -310,7 +310,7 @@ class Gameboard():
                 if piece.shape[p][row][col] == '1':
                     pygame.draw.rect(self.gamescreen, 
                                     piece.color, 
-                                    (((self.width + 340)) + col * P_SIZE, (row * P_SIZE) + 280, P_SIZE, P_SIZE))         
+                                    (((self.width + 340)) + col * P_SIZE, (row * P_SIZE) + 240, P_SIZE, P_SIZE))         
 
 
     def draw_board(self):
@@ -325,6 +325,7 @@ class Gameboard():
     
     def gameover(self):
         return sum(self.grid[0]) > 0 or sum(self.grid[1]) > 0 or sum(self.grid[2]) > 0
+
    
 class Tetris():
     DROP_EVENT = pygame.USEREVENT
@@ -332,6 +333,21 @@ class Tetris():
     def __init__(self):
         self.window = pygame.display.set_mode((S_WIDTH, S_HEIGHT))
         self.gameboard = Gameboard(self.window)
+
+    def main_menu(self):
+        run = True
+        while run:
+            self.window.fill((0,0,0))
+            font = pygame.font.SysFont('comicsans', 60)
+            label = font.render('Press any button to start', 1, (255,255,255))
+            self.window.blit(label, ((top_left_x + 4) * P_SIZE + G_WIDTH / 2 - (label.get_width() / 2), 300))            
+            pygame.display.update()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                if event.type == pygame.KEYDOWN:
+                    self.start()
+        pygame.quit()
 
     def start(self):
         pygame.display.set_caption('Tetris Clone')
@@ -356,7 +372,7 @@ class Tetris():
 
             font = pygame.font.SysFont('comicsans', 40)
             label = font.render('HOLD', 1, (255,255,255))
-            self.window.blit(label, ((top_left_x + 9) * P_SIZE + G_WIDTH / 2 - (label.get_width() / 2), 280))
+            self.window.blit(label, ((top_left_x + 9) * P_SIZE + G_WIDTH / 2 - (label.get_width() / 2), 240))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:         
@@ -385,6 +401,6 @@ class Tetris():
 
     
 if __name__ == '__main__':
-    Tetris().start()
+    Tetris().main_menu()
 
     
